@@ -1,0 +1,17 @@
+19.1 DEBUG
+winsize = 3
+max_disparity = 5
+Ohjelman alusta vasemman d-kuvan laskemisen loppuun 28217.1 ms
+
+19.1 RELEASE 
+winsize = 3 
+max_disparity = 5 
+Ohjelman alusta vasemman d-kuvan laskemisen loppuun 1438.97 ms
+
+19.1 RELEASE 
+winsize = 9 
+max_disparity = 65 
+Ohjelman alusta vasemman d-kuvan laskemisen loppuun 12970 ms
+
+
+
