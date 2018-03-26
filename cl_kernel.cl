@@ -74,3 +74,122 @@ void kernel cross_check(global const unsigned char* r_img, global const unsigned
 
 	}
 }
+
+void kernel zncc_calc(global const unsigned char* l_img, global const unsigned char* r_img, global const unsigned char* l_mean_img, global const unsigned char* r_mean_img, global unsigned char* disp_img, unsigned img_width, unsigned img_height, unsigned win_size, int max_disparity)
+{
+	//calculating this on every time, dead weight
+	const int win_rad_x = (win_size - 1) / 2;
+	const int win_rad_y = (win_size - 1) / 2;
+
+	const int img_size = img_width*img_height;
+
+	//if (max_disparity == 0)
+	//{
+	//	std::cout << "max_disparity cannot be zero" << std::endl;
+	//	return;
+	//}
+
+	int min_disparity = 0;
+	const float scale_factor = (float)255 / (max_disparity - min_disparity); //scale factor may be negative, at least in c++ its ok to save negative values to unsigned (later scale_factor*d_index is casted to unsigned char)
+	if (max_disparity < 0) // if max_disparity is negative swap min_disparity and max_disparity
+	{
+		min_disparity = max_disparity;
+		max_disparity = 0;
+	}
+
+	//const float printProgressCounter = (height_stop - height_start) / (float)100;
+	//const int printProgressCounterStep = roundf(printProgressCounter * 20); //  Print progress each 20th %
+
+	const int pixel_index = get_global_id(0);
+
+	//for (int img_y = height_start; img_y < height_stop; img_y++)
+	//{
+		//if (writeProgress)
+		//{
+		//	if ((img_y - height_start) % (printProgressCounterStep) == 0)
+		//	{
+		//		std::cout << "Progress " << (img_y - height_start) / printProgressCounter << "% \n";
+		//	}
+		//}
+
+		const int pixel_x_coordinate = pixel_index % img_width;
+
+		//for (int img_x = 0; img_x < img_width; img_x++)
+		//{
+			//const int l_mean_value = l_mean_img.at(img_y * img_width + img_x);
+			const int l_mean_value = l_mean_img[pixel_index];
+
+			int winner_d_index = 0;
+			//change to float
+			//double highest_correlation = 0.0f;
+			float highest_correlation = 0.0f;
+
+			for (int disp_x = min_disparity; disp_x< max_disparity; disp_x++)
+			{
+				if (pixel_x_coordinate + disp_x < 0 || pixel_x_coordinate + disp_x >= img_width)
+				{
+					continue;
+				}
+
+				int upper_sum = 0;
+				int lower_sum_0 = 0;
+				int lower_sum_1 = 0;
+
+				const int r_mean_value = r_mean_img[pixel_index + disp_x];
+
+				for (int win_y = -win_rad_y; win_y <= win_rad_y; win_y++)
+				{
+					//const int y_index = img_y + win_y;
+					const int window_y_pixel_index = pixel_index + (win_y * img_width);
+					if (window_y_pixel_index < 0 || window_y_pixel_index >= img_size)
+					{
+						continue;
+					}
+					//const int y_offset = y_index * img_width;
+
+					//const int y_offset = window_y_pixel_index;
+
+					for (int win_x = -win_rad_x; win_x <= win_rad_x; win_x++)
+					{
+						const int x_index = pixel_x_coordinate + win_x;
+						const int x_disp_index = pixel_x_coordinate + win_x + disp_x;
+						if (x_disp_index < 0
+							|| x_disp_index >= img_width
+							|| x_index < 0
+							|| x_index >= img_width)
+						{
+							// how to deal with edges, if continue does it have any functionality or misfunctionality
+							continue;
+						}
+
+						// use [] operator since it faster than .at() operator (boundaries are checked previously)
+						//const int left_pixel_val_diff_from_avg = l_img[y_offset + x_index] - l_mean_value;
+						//const int right_pixel_val_diff_from_avg = r_img[y_offset + x_disp_index] - r_mean_value;
+						const int left_pixel_val_diff_from_avg = l_img[window_y_pixel_index + win_x] - l_mean_value;
+						const int right_pixel_val_diff_from_avg = r_img[window_y_pixel_index + win_x + disp_x] - r_mean_value;
+						upper_sum += left_pixel_val_diff_from_avg * right_pixel_val_diff_from_avg;
+						lower_sum_0 += left_pixel_val_diff_from_avg * left_pixel_val_diff_from_avg;
+						lower_sum_1 += right_pixel_val_diff_from_avg * right_pixel_val_diff_from_avg;
+					}
+				}
+				//const double lower_value = (sqrt(lower_sum_0) * sqrt(lower_sum_1));
+				//change to float
+				const float lower_value = (sqrt(lower_sum_0) * sqrt(lower_sum_1));
+				if (lower_value != 0.0f)
+				{
+					//change to float
+					const float zncc_value = upper_sum / lower_value;
+					//const double zncc_value = upper_sum / lower_value;
+					if (zncc_value > highest_correlation)
+					{
+						highest_correlation = zncc_value;
+						winner_d_index = disp_x;
+					}
+				}
+			}
+			//disp_img[pixel_index] = roundf(winner_d_index * scale_factor);
+			disp_img[pixel_index] = round(winner_d_index * scale_factor);
+		//}
+	//}
+
+}
