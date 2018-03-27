@@ -16,9 +16,9 @@ void resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char
 	const int input_image_x_offset = (get_global_id(0) % image_width) * sampling_step * 4;
 	const int input_image_index = input_image_y_offset + input_image_x_offset;
 
-	result_img[result_pixel_index] = round(img[input_image_index] *r_con
-		+ img[input_image_index + 1] * g_con
-		+ img[input_image_index + 2] * b_con);
+	result_img[result_pixel_index] = 255;//round(img[input_image_index] *r_con
+		//+ img[input_image_index + 1] * g_con
+		//+ img[input_image_index + 2] * b_con);
 
 
 
