@@ -3,7 +3,7 @@ void kernel simple_add(global const int* A, global const int* B, global int* C)
     C[get_global_id(0)]=A[get_global_id(0)]+B[get_global_id(0)];                 
 }
 
-void resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned sampling_step)
+void kernel resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char* result_img, unsigned result_image_width, unsigned sampling_step)
 {
 	//const unsigned char r_con = 0.2126 * 255, g_con = 0.7152 * 255, b_con = 0.0722 * 255; // TODO (for performance somehow use char? maybe output should be shifted or something) 
 	const float r_con = 0.2126f, g_con = 0.7152f, b_con = 0.0722f;
@@ -11,17 +11,15 @@ void resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char
 	const int result_pixel_index = get_global_id(0);
 	
 	// pixels above current index
-	const int input_image_y_offset = (get_global_id(0) / image_width) * sampling_step * sampling_step * 4;
-	// pixels above current index + x_index * sampling_step * rgba
-	const int input_image_x_offset = (get_global_id(0) % image_width) * sampling_step * 4;
+	const int input_image_y_offset = (result_pixel_index / result_image_width) * sampling_step * sampling_step * 4 * result_image_width;
+	// pixels on the row
+	const int input_image_x_offset = (result_pixel_index % result_image_width) * sampling_step * 4;
+	// sum
 	const int input_image_index = input_image_y_offset + input_image_x_offset;
 
-	result_img[result_pixel_index] = 255;//round(img[input_image_index] *r_con
-		//+ img[input_image_index + 1] * g_con
-		//+ img[input_image_index + 2] * b_con);
-
-
-
+	result_img[result_pixel_index] = round(img[input_image_index] *r_con
+		+ img[input_image_index + 1] * g_con
+		+ img[input_image_index + 2] * b_con);
 }
 
 void kernel mean_calc(global const unsigned char* img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned win_size)
