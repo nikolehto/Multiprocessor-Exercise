@@ -109,9 +109,9 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 			continue;
 		}
 
-		int upper_sum = 0;
-		int lower_sum_0 = 0;
-		int lower_sum_1 = 0;
+		float upper_sum = 0;
+		float lower_sum_0 = 0;
+		float lower_sum_1 = 0;
 
 		const int r_mean_value = r_mean_img[pixel_index + disp_x];
 
