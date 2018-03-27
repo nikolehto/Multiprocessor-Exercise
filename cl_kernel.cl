@@ -1,7 +1,36 @@
 void kernel simple_add(global const int* A, global const int* B, global int* C)
 {       
     C[get_global_id(0)]=A[get_global_id(0)]+B[get_global_id(0)];                 
-}   
+}
+/*
+void resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned sampling_step)
+{
+
+
+	//const unsigned char r_con = 0.2126 * 255, g_con = 0.7152 * 255, b_con = 0.0722 * 255; // TODO (for performance somehow use char? maybe output should be shifted or something) 
+	const float r_con = 0.2126f, g_con = 0.7152f, b_con = 0.0722f;
+
+	const unsigned x_step = sampling_step * 4; // 4 channels
+	const unsigned widthc4 = width * 4; // there are actually 4 * width values in x axis
+
+	for (unsigned img_y = 0; img_y < height; img_y += sampling_step)
+	{
+		const unsigned y_offset = img_y * widthc4;
+		for (unsigned img_x = 0; img_x < widthc4; img_x += x_step)
+		{
+			const unsigned index = y_offset + img_x;
+			newImage.push_back(roundf(img.at(index) *r_con
+				+ img.at(index + 1) * g_con
+				+ img.at(index + 2) * b_con));
+		}
+
+	}
+
+	height /= sampling_step;
+	width /= sampling_step;
+
+	img.swap(newImage);
+}*/
 
 void kernel mean_calc(global const unsigned char* img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned win_size)
 {
