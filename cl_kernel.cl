@@ -181,3 +181,94 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 	disp_img[pixel_index] = round(winner_d_index * scale_factor);
 
 }
+
+void kernel occlusion_filling(global const unsigned char* post_img, global unsigned char* of_img, unsigned img_width, unsigned img_height, int window_radius) {
+	//dead weight
+	const int img_size = img_width*img_height;
+
+	const int pixel_index = get_global_id(0);
+
+	if (post_img[pixel_index] == 0)
+	{
+		//calculates mean value from window pixels but ignoring zero valued pixels and using also values that are calculated previous rounds
+		//window_radius = 1 => 9 tiles
+		//window_radius = 2 => 25 tiles
+		//window_radius = 3 => 49 tiles
+		//window_radius = 4 => 81 tiles
+
+		int window_sum = 0;
+		int window_valid_pixels_count = 0;
+
+		const int pixel_x_coordinate = pixel_index % img_width;
+
+		for (int window_y = -window_radius; window_y <= window_radius; window_y++)
+		{
+			const int window_y_pixel_index = pixel_index + (window_y * img_width);
+			if (window_y_pixel_index < 0)
+			{
+				//not valid
+				continue;
+			}
+
+			if ((window_y_pixel_index) >= img_size)
+			{
+				//not valid
+				continue;
+			}
+
+			for (int window_x = -window_radius; window_x <= window_radius; window_x++)
+			{
+				//check if valid window pixel
+				if ((pixel_x_coordinate + window_x) < 0)
+				{
+					//not valid
+					continue;
+				}
+
+				if ((pixel_x_coordinate + window_x) >= img_width)
+				{
+					//not valid
+					continue;
+				}
+
+				//pixel location is valid
+
+				const int current_pixel_index = window_y_pixel_index + window_x;
+
+				if (post_img[current_pixel_index] != 0)
+				{
+					window_sum = window_sum + post_img[current_pixel_index];
+					window_valid_pixels_count++;
+				}
+				else
+				{
+
+						//get value of previously calculated result pixel
+
+					//I dont know if this shit even works
+						if (of_img[current_pixel_index] != 0)
+						{
+							window_sum = window_sum + of_img[current_pixel_index];
+							window_valid_pixels_count++;
+						}
+				}
+			}
+		}
+
+		//Calculate mean and insert it to result picture	
+		if (window_valid_pixels_count > 0)
+		{
+			int mean = window_sum / window_valid_pixels_count;
+			of_img[pixel_index] = mean;
+		}
+		else
+		{
+			of_img[pixel_index] = 0;
+		}
+
+	}
+	else
+	{
+		of_img[pixel_index] = post_img[pixel_index];
+	}
+}
