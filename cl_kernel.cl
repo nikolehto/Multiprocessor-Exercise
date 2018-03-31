@@ -180,14 +180,13 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 
 }
 
-void kernel occlusion_filling(global const unsigned char* post_img, global unsigned char* of_img, unsigned img_width, unsigned img_height, int window_radius) {
-	//dead weight
-	const int img_size = img_width*img_height;
+void kernel occlusion_filling(global unsigned char* post_img, unsigned img_width, unsigned img_height, int window_radius) {
 
 	const int pixel_index = get_global_id(0);
 
 	if (post_img[pixel_index] == 0)
 	{
+		const int img_size = img_width*img_height;
 		//calculates mean value from window pixels but ignoring zero valued pixels and using also values that are calculated previous rounds
 		//window_radius = 1 => 9 tiles
 		//window_radius = 2 => 25 tiles
@@ -238,17 +237,6 @@ void kernel occlusion_filling(global const unsigned char* post_img, global unsig
 					window_sum = window_sum + post_img[current_pixel_index];
 					window_valid_pixels_count++;
 				}
-				else
-				{
-
-						//get value of previously calculated result pixel, if it even exists...
-
-						if (of_img[current_pixel_index] != 0)
-						{
-							window_sum = window_sum + of_img[current_pixel_index];
-							window_valid_pixels_count++;
-						}
-				}
 			}
 		}
 
@@ -256,16 +244,12 @@ void kernel occlusion_filling(global const unsigned char* post_img, global unsig
 		if (window_valid_pixels_count > 0)
 		{
 			int mean = window_sum / window_valid_pixels_count;
-			of_img[pixel_index] = mean;
+			post_img[pixel_index] = mean;
 		}
 		else
 		{
-			of_img[pixel_index] = 0;
+			post_img[pixel_index] = 0;
 		}
-
-	}
-	else
-	{
-		of_img[pixel_index] = post_img[pixel_index];
+		
 	}
 }
