@@ -241,9 +241,8 @@ void kernel occlusion_filling(global const unsigned char* post_img, global unsig
 				else
 				{
 
-						//get value of previously calculated result pixel
+						//get value of previously calculated result pixel, if it even exists...
 
-					//I dont know if this shit even works
 						if (of_img[current_pixel_index] != 0)
 						{
 							window_sum = window_sum + of_img[current_pixel_index];
