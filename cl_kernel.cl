@@ -22,39 +22,48 @@ void kernel resizeAndGreyScaleImg(global const unsigned char* img, global unsign
 		+ img[input_image_index + 2] * b_con);
 }
 
-void kernel mean_calc(global const unsigned char* img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned win_size)
+void kernel mean_calc(global const unsigned char* img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned win_rad)
 {
 
 	//TODO: This calculus gets performed everytime, and its waste of time
-	const int win_rad_x = (win_size - 1) / 2;
-	const int win_rad_y = (win_size - 1) / 2;
+	//const int win_rad_x = (win_size - 1) / 2;
+	//const int win_rad_y = (win_size - 1) / 2;
 
-	const int img_size = image_width * image_height;
+	const int win_radius = win_rad;
+
+
+	//const int img_size = image_width * image_height; //TODO: useless
 
 	unsigned int mean = 0;
 	unsigned int value_count = 0;
 
-	const int current_pixel_index = get_global_id(0);
+	//const int current_pixel_index = get_global_id(0) * ;
 
-	const int current_pixel_x_coordinate = current_pixel_index % image_width;
+	const int current_pixel_x_coordinate = get_global_id(0);
+	const int current_pixel_y_coordinate = get_global_id(1);
 
-	for (int win_y = -win_rad_y; win_y <= win_rad_y; win_y++)
+	const int current_pixel_index = (current_pixel_y_coordinate * image_width) + current_pixel_x_coordinate;
+
+	//Removed costly modulo calculation which was used earlier
+
+
+	for (int win_y = -win_radius; win_y <= win_radius; win_y++)
 	{
-		const int window_y_pixel_index = current_pixel_index + (win_y * image_width);
-		if (window_y_pixel_index < 0 || window_y_pixel_index >= img_size)
+		const int window_y_pixel_coordinate = current_pixel_y_coordinate + win_y;
+		if (window_y_pixel_coordinate < 0 || window_y_pixel_coordinate >= image_height)
 		{
 			continue;
 		}
 
-		for (int win_x = -win_rad_x; win_x <= win_rad_x; win_x++)
+		for (int win_x = -win_radius; win_x <= win_radius; win_x++)
 		{
-			const int x_coordinate = current_pixel_x_coordinate + win_x;
-			if (x_coordinate < 0 || (x_coordinate >= image_width))
+			const int window_x_pixel_coordinate = current_pixel_x_coordinate + win_x;
+			if (window_x_pixel_coordinate < 0 || (window_x_pixel_coordinate >= image_width))
 			{
 				continue;
 			}
 
-			int const current_window_pixel_index = window_y_pixel_index + win_x;
+			int const current_window_pixel_index = (window_y_pixel_coordinate * image_height) + window_x_pixel_coordinate;
 
 			mean += img[current_window_pixel_index];
 			value_count++;
@@ -68,27 +77,28 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 
 void kernel cross_check(global const unsigned char* r_img, global const unsigned char* l_img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned max_diff)
 {
-	const int diff = l_img[get_global_id(0)] - r_img[get_global_id(0)];
+	const int img_index = get_global_id(0);
+	const int diff = l_img[img_index] - r_img[img_index];
 	if (diff >= 0) // l_img is winner
 	{
 		if (diff <= max_diff)
 		{
-			result_img[get_global_id(0)] = l_img[get_global_id(0)];
+			result_img[img_index] = l_img[img_index];
 		}
 		else
 		{
-			result_img[get_global_id(0)] = 0;
+			result_img[img_index] = 0;
 		}
 	}
 	else //  r_img is winner
 	{
 		if (-diff <= max_diff)
 		{
-			result_img[get_global_id(0)] = r_img[get_global_id(0)];
+			result_img[img_index] = r_img[img_index];
 		}
 		else
 		{
-			result_img[get_global_id(0)] = 0;
+			result_img[img_index] = 0;
 		}
 
 	}
