@@ -57,18 +57,18 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 	for (int win_y = -win_radius_y; win_y <= win_radius_y; win_y++)
 	{
 		const int window_y_pixel_coordinate = current_pixel_y_coordinate + win_y;
-		if (window_y_pixel_coordinate < 0 || window_y_pixel_coordinate >= image_height)
-		{
-			continue;
-		}
+		//if (window_y_pixel_coordinate < 0 || window_y_pixel_coordinate >= image_height)
+		//{
+		//	continue;
+		//}
 
 		for (int win_x = -win_radius_x; win_x <= win_radius_x; win_x++)
 		{
 			const int window_x_pixel_coordinate = current_pixel_x_coordinate + win_x;
-			if (window_x_pixel_coordinate < 0 || (window_x_pixel_coordinate >= image_width))
-			{
-				continue;
-			}
+			//if (window_x_pixel_coordinate < 0 || (window_x_pixel_coordinate >= image_width))
+			//{
+			///	continue;
+			//}
 
 			int const current_window_pixel_index = (window_y_pixel_coordinate * image_width) + window_x_pixel_coordinate;
 
@@ -145,11 +145,12 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 
 	for (int disp_x = min_disparity; disp_x< max_disparity; disp_x++)
 	{
+		/*
 		if (current_pixel_x_coordinate + disp_x < 0 || current_pixel_x_coordinate + disp_x >= img_width)
 		{
 			continue;
 		}
-
+*/
 		float upper_sum = 0;
 		float lower_sum_0 = 0;
 		float lower_sum_1 = 0;
@@ -161,13 +162,15 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 			//const int y_index = img_y + win_y;
 			//const int window_y_pixel_index = pixel_index + (win_y * img_width);
 			const int window_y_pixel_index = ((current_pixel_y_coordinate + win_y) * img_width) + current_pixel_x_coordinate;
-			if (window_y_pixel_index < 0 || window_y_pixel_index >= img_size)
+			
+			/*if (window_y_pixel_index < 0 || window_y_pixel_index >= img_size)
 			{
 				continue;
-			}
+			}*/
 
 			for (int win_x = -win_rad_x; win_x <= win_rad_x; win_x++)
 			{
+				/*
 				const int window_x_pixel_coordinate = current_pixel_x_coordinate + win_x;
 				const int x_disp_index = current_pixel_x_coordinate + win_x + disp_x;
 				if (x_disp_index < 0
@@ -177,7 +180,7 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 				{
 					// how to deal with edges, if continue does it have any functionality or misfunctionality
 					continue;
-				}
+				}*/
 
 				const int left_pixel_val_diff_from_avg = l_img[window_y_pixel_index + win_x] - l_mean_value;
 				const int right_pixel_val_diff_from_avg = r_img[window_y_pixel_index + win_x + disp_x] - r_mean_value;
@@ -209,7 +212,7 @@ void kernel occlusion_filling(global unsigned char* post_img, unsigned img_width
 
 	if (post_img[pixel_index] == 0)
 	{
-		const int img_size = img_width*img_height;
+		//const int img_size = img_width*img_height;
 		//calculates mean value from window pixels but ignoring zero valued pixels and using also values that are calculated previous rounds
 		//window_radius = 1 => 9 tiles
 		//window_radius = 2 => 25 tiles
@@ -219,11 +222,14 @@ void kernel occlusion_filling(global unsigned char* post_img, unsigned img_width
 		int window_sum = 0;
 		int window_valid_pixels_count = 0;
 
-		const int pixel_x_coordinate = pixel_index % img_width;
+		//const int pixel_x_coordinate = pixel_index % img_width;
+		//const int pixel_x_coordinate = get_global_id(0);
+
 
 		for (int window_y = -window_radius; window_y <= window_radius; window_y++)
 		{
 			const int window_y_pixel_index = pixel_index + (window_y * img_width);
+			/*
 			if (window_y_pixel_index < 0)
 			{
 				//not valid
@@ -234,10 +240,11 @@ void kernel occlusion_filling(global unsigned char* post_img, unsigned img_width
 			{
 				//not valid
 				continue;
-			}
+			}*/
 
 			for (int window_x = -window_radius; window_x <= window_radius; window_x++)
 			{
+				/*
 				//check if valid window pixel
 				if ((pixel_x_coordinate + window_x) < 0)
 				{
@@ -249,7 +256,7 @@ void kernel occlusion_filling(global unsigned char* post_img, unsigned img_width
 				{
 					//not valid
 					continue;
-				}
+				}*/
 
 				//pixel location is valid
 
