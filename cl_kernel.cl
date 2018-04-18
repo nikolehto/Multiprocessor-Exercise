@@ -3,12 +3,15 @@ void kernel simple_add(global const int* A, global const int* B, global int* C)
     C[get_global_id(0)]=A[get_global_id(0)]+B[get_global_id(0)];                 
 }
 
-void kernel resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char* result_img, unsigned result_image_width, unsigned sampling_step)
+void kernel resizeAndGreyScaleImg(global const unsigned char* img, global unsigned char* result_img, unsigned result_image_width, unsigned sampling_step, unsigned padding)
 {
 	//const unsigned char r_con = 0.2126 * 255, g_con = 0.7152 * 255, b_con = 0.0722 * 255; // TODO (for performance somehow use char? maybe output should be shifted or something) 
 	const float r_con = 0.2126f, g_con = 0.7152f, b_con = 0.0722f;
 
-	const int result_pixel_index = get_global_id(0);
+	const int pixel_x_coordinate = get_global_id(0);
+	const int pixel_y_coordinate = get_global_id(1);
+
+	const int result_pixel_index = pixel_x_coordinate + (pixel_y_coordinate * result_image_width);
 	
 	// pixels above current index
 	const int input_image_y_offset = (result_pixel_index / result_image_width) * sampling_step * sampling_step * 4 * result_image_width;
@@ -17,7 +20,10 @@ void kernel resizeAndGreyScaleImg(global const unsigned char* img, global unsign
 	// sum
 	const int input_image_index = input_image_y_offset + input_image_x_offset;
 
-	result_img[result_pixel_index] = round(img[input_image_index] *r_con
+
+	const int paddingoffset = ((padding * (result_image_width + (2 * padding))) + padding) + (pixel_y_coordinate * 2 * padding);
+
+	result_img[paddingoffset + result_pixel_index] = round(img[input_image_index] *r_con
 		+ img[input_image_index + 1] * g_con
 		+ img[input_image_index + 2] * b_con);
 }
@@ -29,8 +35,8 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 	//const int win_rad_x = (win_size - 1) / 2;
 	//const int win_rad_y = (win_size - 1) / 2;
 
-	const int win_radius = win_rad;
-
+	const int win_radius_y = win_rad;
+	const int win_radius_x = win_rad;
 
 	//const int img_size = image_width * image_height; //TODO: useless
 
@@ -45,9 +51,10 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 	const int current_pixel_index = (current_pixel_y_coordinate * image_width) + current_pixel_x_coordinate;
 
 	//Removed costly modulo calculation which was used earlier
+	//result_img[current_pixel_index] = (unsigned char) 244;
+	//return;
 
-
-	for (int win_y = -win_radius; win_y <= win_radius; win_y++)
+	for (int win_y = -win_radius_y; win_y <= win_radius_y; win_y++)
 	{
 		const int window_y_pixel_coordinate = current_pixel_y_coordinate + win_y;
 		if (window_y_pixel_coordinate < 0 || window_y_pixel_coordinate >= image_height)
@@ -55,7 +62,7 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 			continue;
 		}
 
-		for (int win_x = -win_radius; win_x <= win_radius; win_x++)
+		for (int win_x = -win_radius_x; win_x <= win_radius_x; win_x++)
 		{
 			const int window_x_pixel_coordinate = current_pixel_x_coordinate + win_x;
 			if (window_x_pixel_coordinate < 0 || (window_x_pixel_coordinate >= image_width))
@@ -63,7 +70,7 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 				continue;
 			}
 
-			int const current_window_pixel_index = (window_y_pixel_coordinate * image_height) + window_x_pixel_coordinate;
+			int const current_window_pixel_index = (window_y_pixel_coordinate * image_width) + window_x_pixel_coordinate;
 
 			mean += img[current_window_pixel_index];
 			value_count++;
@@ -77,7 +84,7 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 
 void kernel cross_check(global const unsigned char* r_img, global const unsigned char* l_img, global unsigned char* result_img, unsigned image_width, unsigned image_height, unsigned max_diff)
 {
-	const int img_index = get_global_id(0);
+	const int img_index = get_global_id(0) + (get_global_id(1) * image_width);
 	const int diff = l_img[img_index] - r_img[img_index];
 	if (diff >= 0) // l_img is winner
 	{
@@ -110,7 +117,8 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 	const int win_rad_x = (win_size - 1) / 2;
 	const int win_rad_y = (win_size - 1) / 2;
 
-	const int img_size = img_width*img_height;
+	const int img_size = img_width*img_height; //dead weight
+
 
 	int min_disparity = 0;
 	const float scale_factor = (float)255 / (max_disparity - min_disparity); //scale factor may be negative, at least in c++ its ok to save negative values to unsigned (later scale_factor*d_index is casted to unsigned char)
@@ -120,10 +128,14 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 		max_disparity = 0;
 	}
 
-	const int pixel_index = get_global_id(0);
+	//const int pixel_index = get_global_id(0);
 
+	//const int pixel_x_coordinate = pixel_index % img_width;
 
-	const int pixel_x_coordinate = pixel_index % img_width;
+	const int current_pixel_x_coordinate = get_global_id(0);
+	const int current_pixel_y_coordinate = get_global_id(1);
+
+	const int pixel_index = current_pixel_x_coordinate + (current_pixel_y_coordinate * img_width);
 
 	const int l_mean_value = l_mean_img[pixel_index];
 
@@ -133,7 +145,7 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 
 	for (int disp_x = min_disparity; disp_x< max_disparity; disp_x++)
 	{
-		if (pixel_x_coordinate + disp_x < 0 || pixel_x_coordinate + disp_x >= img_width)
+		if (current_pixel_x_coordinate + disp_x < 0 || current_pixel_x_coordinate + disp_x >= img_width)
 		{
 			continue;
 		}
@@ -147,7 +159,8 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 		for (int win_y = -win_rad_y; win_y <= win_rad_y; win_y++)
 		{
 			//const int y_index = img_y + win_y;
-			const int window_y_pixel_index = pixel_index + (win_y * img_width);
+			//const int window_y_pixel_index = pixel_index + (win_y * img_width);
+			const int window_y_pixel_index = ((current_pixel_y_coordinate + win_y) * img_width) + current_pixel_x_coordinate;
 			if (window_y_pixel_index < 0 || window_y_pixel_index >= img_size)
 			{
 				continue;
@@ -155,12 +168,12 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 
 			for (int win_x = -win_rad_x; win_x <= win_rad_x; win_x++)
 			{
-				const int x_index = pixel_x_coordinate + win_x;
-				const int x_disp_index = pixel_x_coordinate + win_x + disp_x;
+				const int window_x_pixel_coordinate = current_pixel_x_coordinate + win_x;
+				const int x_disp_index = current_pixel_x_coordinate + win_x + disp_x;
 				if (x_disp_index < 0
 					|| x_disp_index >= img_width
-					|| x_index < 0
-					|| x_index >= img_width)
+					|| window_x_pixel_coordinate < 0
+					|| window_x_pixel_coordinate >= img_width)
 				{
 					// how to deal with edges, if continue does it have any functionality or misfunctionality
 					continue;
@@ -191,8 +204,8 @@ void kernel zncc_calc(global const unsigned char* l_img, global const unsigned c
 }
 
 void kernel occlusion_filling(global unsigned char* post_img, unsigned img_width, unsigned img_height, int window_radius) {
-
-	const int pixel_index = get_global_id(0);
+	//return;
+	const int pixel_index = get_global_id(0) + (get_global_id(1) * img_width);
 
 	if (post_img[pixel_index] == 0)
 	{
