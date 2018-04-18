@@ -73,6 +73,7 @@ void kernel mean_calc(global const unsigned char* img, global unsigned char* res
 			int const current_window_pixel_index = (window_y_pixel_coordinate * image_width) + window_x_pixel_coordinate;
 
 			mean += img[current_window_pixel_index];
+			//mean += localImageBuffer[current_window_pixel_index];
 			value_count++;
 		}
 	}
