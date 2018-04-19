@@ -14,9 +14,11 @@ void kernel resizeAndGreyScaleImg(global const unsigned char* img, global unsign
 	const int result_pixel_index = pixel_x_coordinate + (pixel_y_coordinate * result_image_width);
 	
 	// pixels above current index
-	const int input_image_y_offset = (result_pixel_index / result_image_width) * sampling_step * sampling_step * 4 * result_image_width;
+	// const int input_image_y_offset = (result_pixel_index / result_image_width) * sampling_step * sampling_step * 4 * result_image_width;
+	const int input_image_y_offset = result_image_width * pixel_y_coordinate * sampling_step * sampling_step * 4;
 	// pixels on the row
-	const int input_image_x_offset = (result_pixel_index % result_image_width) * sampling_step * 4;
+	// const int input_image_x_offset = (result_pixel_index % result_image_width) * sampling_step * 4;
+	const int input_image_x_offset = pixel_x_coordinate * sampling_step * 4;
 	// sum
 	const int input_image_index = input_image_y_offset + input_image_x_offset;
 
